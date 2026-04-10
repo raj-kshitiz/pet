@@ -18,7 +18,7 @@ public class ExpenseController {
         this.expenseService = expenseService;
     }
 
-    @GetMapping("/expense")
+    @GetMapping("/expenses")
     public ResponseEntity<List<Expense>> getAllExpenses(){
         List<Expense> expenses = expenseService.getAllExpenses();
         if(expenses.isEmpty()){
@@ -37,5 +37,11 @@ public class ExpenseController {
     public ResponseEntity<Expense> updateExpense(@RequestBody Expense expense) {
         Expense updatedExpense = expenseService.updateExpense(expense);
         return new ResponseEntity<>(updatedExpense, HttpStatus.OK);
+    }
+
+    @DeleteMapping("/expense")
+    public ResponseEntity<Expense> deleteExpense(@RequestBody Expense expense) {
+        Expense deletedExpense = expenseService.deleteExpense(expense);
+        return new ResponseEntity<>(deletedExpense, HttpStatus.OK);
     }
 }

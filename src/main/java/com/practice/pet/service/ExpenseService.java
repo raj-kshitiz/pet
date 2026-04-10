@@ -29,4 +29,10 @@ public class ExpenseService {
         expenseRepository.save(expense);
         return expense;
     }
+
+    public Expense deleteExpense(Expense expense) {
+        Expense deletedExpense = expenseRepository.findById(expense.getId()).orElse(null);
+        expenseRepository.delete(deletedExpense);
+        return deletedExpense;
+    }
 }
