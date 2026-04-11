@@ -2,35 +2,60 @@ package com.practice.pet.service;
 
 import com.practice.pet.model.Expense;
 import com.practice.pet.repository.ExpenseRepository;
-import com.practice.pet.repository.FilterRepository;
-import org.springframework.beans.factory.annotation.Autowired;
+import jakarta.persistence.criteria.Predicate;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
+/**
+ * Provides filtering and time-based aggregation of expenses.
+ * All filtering is pushed to the database via JPA Specifications —
+ * no in-memory loading of all rows.
+ */
 @Service
 public class FilterService {
 
-    private final FilterRepository filterRepository;
+    private final ExpenseRepository expenseRepository;
 
-    public FilterService(FilterRepository filterRepository) {
-        this.filterRepository = filterRepository;
+    public FilterService(ExpenseRepository expenseRepository) {
+        this.expenseRepository = expenseRepository;
     }
 
-    // ============ MAIN: Flexible filtering method ============
+    // ============ MAIN: Flexible DB-level filtering ============
+
+    /**
+     * Dynamically filters expenses using only the non-null parameters.
+     * Each predicate is applied at the SQL level — safe even with large datasets.
+     */
     public List<Expense> filterExpenses(String category, String paidTo,
                                         LocalDate startDate, LocalDate endDate,
                                         Double minAmount) {
+        Specification<Expense> spec = (root, query, cb) -> {
+            List<Predicate> predicates = new ArrayList<>();
 
-        return filterRepository.findAll().stream()
-                .filter(e -> category == null || e.getCategory().equalsIgnoreCase(category))
-                .filter(e -> paidTo == null || (e.getPaidTo() != null && e.getPaidTo().equalsIgnoreCase(paidTo)))
-                .filter(e -> startDate == null || !e.getDate().isBefore(startDate))
-                .filter(e -> endDate == null || !e.getDate().isAfter(endDate))
-                .filter(e -> minAmount == null || e.getAmount() >= minAmount)
-                .collect(Collectors.toList());
+            if (category != null) {
+                predicates.add(cb.equal(cb.lower(root.get("category")), category.toLowerCase()));
+            }
+            if (paidTo != null) {
+                predicates.add(cb.equal(cb.lower(root.get("paidTo")), paidTo.toLowerCase()));
+            }
+            if (startDate != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("date"), startDate));
+            }
+            if (endDate != null) {
+                predicates.add(cb.lessThanOrEqualTo(root.get("date"), endDate));
+            }
+            if (minAmount != null) {
+                predicates.add(cb.greaterThanOrEqualTo(root.get("amount"), minAmount));
+            }
+
+            return cb.and(predicates.toArray(new Predicate[0]));
+        };
+
+        return expenseRepository.findAll(spec);
     }
 
     // ============ CONVENIENCE: Specific filters ============
@@ -43,34 +68,33 @@ public class FilterService {
         return filterExpenses(null, paidTo, null, null, null);
     }
 
-
     public List<Expense> findExpensesByDateRange(LocalDate start, LocalDate end) {
         return filterExpenses(null, null, start, end, null);
     }
 
-    public List<Expense> findExpensesByMinAmount(Double min, Double max) {
+    public List<Expense> findExpensesByMinAmount(Double min) {
         return filterExpenses(null, null, null, null, min);
     }
 
+    // ============ Time-based convenience methods ============
 
-    // Filter By days
     public List<Expense> getExpensesToday() {
-        return filterRepository.findExpensesToday();
+        return expenseRepository.findExpensesToday();
     }
 
     public List<Expense> getExpensesThisWeek() {
-        return filterRepository.findExpensesThisWeek();
+        return expenseRepository.findExpensesThisWeek();
     }
 
     public List<Expense> getExpensesThisMonth() {
-        return filterRepository.findExpensesThisMonth();
+        return expenseRepository.findExpensesThisMonth();
     }
 
     public List<Expense> getExpensesThisYear() {
-        return filterRepository.findExpensesThisYear();
+        return expenseRepository.findExpensesThisYear();
     }
 
     public List<Expense> getExpensesLastXDays(int days) {
-        return filterRepository.findExpensesBetween(LocalDate.now().minusDays(days), LocalDate.now());
+        return expenseRepository.findExpensesLastXDays(days);
     }
 }
