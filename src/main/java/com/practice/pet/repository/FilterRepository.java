@@ -10,7 +10,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @Repository
-public interface ReviewRepository extends JpaRepository<Expense, Integer> {
+public interface FilterRepository extends JpaRepository<Expense, Integer> {
 
     @Query("SELECT expense FROM Expense expense WHERE expense.date = CURRENT_DATE")
     List<Expense> findExpensesToday();
@@ -43,4 +43,6 @@ public interface ReviewRepository extends JpaRepository<Expense, Integer> {
     @Query("SELECT e FROM Expense e " +
             "WHERE EXTRACT(YEAR FROM e.date) = EXTRACT(YEAR FROM CURRENT_DATE)")
     List<Expense> findExpensesThisYear();
+
+
 }

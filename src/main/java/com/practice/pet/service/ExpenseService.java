@@ -32,7 +32,12 @@ public class ExpenseService {
 
     public Expense deleteExpense(Expense expense) {
         Expense deletedExpense = expenseRepository.findById(expense.getId()).orElse(null);
+        assert deletedExpense != null;
         expenseRepository.delete(deletedExpense);
         return deletedExpense;
+    }
+
+    public void deleteAllExpenses() {
+        expenseRepository.deleteAll();
     }
 }
